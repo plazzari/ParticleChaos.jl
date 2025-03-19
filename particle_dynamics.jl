@@ -42,8 +42,8 @@ u=Float64[0 for p in 1:NP]
 v=Float64[0 for p in 1:NP]
 w=Float64[0 for p in 1:NP]
 
-δ=Float64[rand(Float64) for p in 1:NP]
-τ=Float64[1             for p in 1:NP]
+δ=Float64[0.9 for p in 1:NP]
+τ=Float64[1.0 for p in 1:NP]
 
 particle_struct = StructArray{DynamicalParticle}((x, y, z, u, v, w, δ, τ))
 
@@ -79,10 +79,10 @@ function nonlinear_dynamics(particles, model, Δt)
 end
 
 model=HydrostaticFreeSurfaceModel(;grid,
-                                  velocities=PrescribedVelocityFields(;u,v),
+                                  velocities=PrescribedVelocityFields(; u, v),
                                   particles=LagrangianParticles(particle_struct; dynamics=nonlinear_dynamics))
 
-particle_sim=Simulation(model, Δt=0.001, stop_time=60)
+particle_sim=Simulation(model, Δt=0.005, stop_time=100)
 
 progress(sim) = @info "Time: ", Oceananigans.Utils.prettytime(sim.model.clock.time) 
 add_callback!(particle_sim, progress, IterationInterval(100))
@@ -112,8 +112,10 @@ fig = Figure()
 ax  = Axis(fig[1, 1])
 contourf!(ψ, colormap = :greys)
 scatter!(xp, yp, color = δp, colormap = :magma)
+xlims!(ax, (-2π, 2π))
+ylims!(ax, (-2π, 2π))
 
-record(fig, "particle_video.mp4", 1:length(indices)) do i
+record(fig, "particle_video.mp4", 1:10:length(indices)) do i
     @info "recording $i of $(length(indices))"
     iter[] = i
 end
