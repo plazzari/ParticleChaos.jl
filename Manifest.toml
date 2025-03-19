@@ -2,7 +2,7 @@
 
 julia_version = "1.10.9"
 manifest_format = "2.0"
-project_hash = "bfbc7775b0a550569ac26abdec5f544ef80e881c"
+project_hash = "4438583cdd59631f6a90bc97c80eb332d2b10e1b"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -610,11 +610,11 @@ version = "1.2.0"
 
 [[deps.Oceananigans]]
 deps = ["Adapt", "CUDA", "Crayons", "CubedSphere", "Dates", "Distances", "DocStringExtensions", "FFTW", "GPUArrays", "Glob", "IncompleteLU", "InteractiveUtils", "IterativeSolvers", "JLD2", "KernelAbstractions", "LinearAlgebra", "Logging", "MPI", "NCDatasets", "OffsetArrays", "OrderedCollections", "Pkg", "Printf", "Random", "Rotations", "SeawaterPolynomials", "SparseArrays", "StaticArrays", "Statistics", "StructArrays", "TimesDates"]
-git-tree-sha1 = "1bb12f98788582a1a2a463a07e1e04ccca24e3ff"
+git-tree-sha1 = "c69575ae201895111a0f914ac82f7e79799e3a05"
 repo-rev = "ss-pl/dynamical-particles"
 repo-url = "https://github.com/CliMA/Oceananigans.jl.git"
 uuid = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
-version = "0.95.27"
+version = "0.96.0"
 
     [deps.Oceananigans.extensions]
     OceananigansEnzymeExt = "Enzyme"

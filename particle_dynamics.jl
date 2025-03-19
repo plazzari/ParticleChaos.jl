@@ -1,10 +1,14 @@
 using Oceananigans
 using Oceananigans.Units
+using Oceananigans.Grids: architecture
+using Oceananigans.Architectures: device
+using KernelAbstractions: @kernel, @index
+using StructArrays
+
+include("dynamical_particles.jl")
+
 Lx =2π
 Ly =2π
-#Lx = 1000kilometers # east-west extent [m]
-#Ly = 1000kilometers # north-south extent [m]
-#Lz = 1kilometers    # depth [m]
 
 grid = RectilinearGrid(size = (200, 200),
                        x = (-Lx, Lx),
@@ -24,21 +28,65 @@ Oceananigans.BoundaryConditions.fill_halo_regions!((u,v))
 
 using GLMakie
 heatmap(ψ)
+
 NP=10000
-x=[(rand(Float64)-1/2)*4π/3 for p in 1:NP]
-y=[(rand(Float64)-1/2)*4π/3 for p in 1:NP]
-z=[0 for p in 1:NP]
+x=Float64[(rand(Float64)-1/2)*4π/3 for p in 1:NP]
+y=Float64[(rand(Float64)-1/2)*4π/3 for p in 1:NP]
+z=Float64[0 for p in 1:NP]
+
+u=Float64[0 for p in 1:NP]
+v=Float64[0 for p in 1:NP]
+w=Float64[0 for p in 1:NP]
+
+δ=Float64[1 for p in 1:NP]
+τ=Float64[1 for p in 1:NP]
+
+particle_struct = StructArray{DynamicalParticle}((x, y, z, u, v, w, δ, τ))
+
+@kernel function _nonlinear_dynamics!(particles, Δt)
+    p = @index(Global, Linear)
+    @inbounds begin
+       δ = particles.δ[p]    
+       τ = particles.τ[p]
+       x = particles.x[p]
+       y = particles.y[p]
+
+       up = particles.u[p]
+       vp = particles.v[p]
+       uf =   2 * sin(y)
+       vf = - 2 * sin(x)
+       U_∇u = - 4 * sin(x) * cos(y)
+       U_∇v = - 4 * cos(x) * sin(y)
+
+       particles.u[p] += Δt * (δ * U_∇u - (up - uf) / τ)
+       particles.v[p] += Δt * (δ * U_∇v - (vp - vf) / τ)
+    end
+end
+
+function nonlinear_dynamics(particles, model, Δt)
+
+    grid = model.grid
+    arch = architecture(grid)
+    dev  = device(arch)
+    Np   = length(particles)
+    _nonlinear_dynamics!(dev, 16, Np)(particles.properties, Δt)
+
+    return nothing
+end
 
 model=HydrostaticFreeSurfaceModel(;grid,
                                   velocities=PrescribedVelocityFields(;u,v),
-                                  particles=LagrangianParticles(; x, y, z))
+                                  particles=LagrangianParticles(particle_struct; dynamics=nonlinear_dynamics))
+
+particle_sim=Simulation(model,Δt=0.001,stop_time=100)
+
+progress(sim) = @info "Time: ", Oceananigans.Utils.prettytime(sim.model.clock.time) 
+add_callback!(particle_sim, progress, IterationInterval(1000))
+
+run!(particle_sim)
 
 contourf(ψ)
 scatter!(model.particles.properties.x,model.particles.properties.y)
-
-particle_sim=Simulation(model,Δt=0.001,stop_time=100)
-run!(particle_sim)
-#                                 particles=LagrangianParticles(; x, y, restitution=1.0, dynamics=no_dynamics, parameters=nothing))
 
 
 
