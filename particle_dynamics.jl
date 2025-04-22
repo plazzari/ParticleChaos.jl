@@ -4,13 +4,16 @@ using Oceananigans.Grids: architecture
 using Oceananigans.Architectures: device
 using KernelAbstractions: @kernel, @index
 using StructArrays
+using JLD2  # Added to activate jldopen
 
 include("dynamical_particles.jl")
 
-Lx = 2π
-Ly = 2π
+REP=10
 
-grid = RectilinearGrid(size = (200, 200),
+Lx = REP*2π
+Ly = REP*2π
+
+grid = RectilinearGrid(size = (REP*200, REP*200),
                        x = (-Lx, Lx),
                        y = (-Ly, Ly),
                        topology = (Periodic, Periodic, Flat))
@@ -99,7 +102,7 @@ scatter!(model.particles.properties.x,model.particles.properties.y)
 
 file    = jldopen("particles.jld2")
 iter    = Observable(1)
-indices = keys(file["timeseries/t"])
+indices = keys(file["timeseries/t/"])
 
 xp = @lift(file["timeseries/p/" * indices[$iter]].x)
 yp = @lift(file["timeseries/p/" * indices[$iter]].y)
@@ -109,11 +112,20 @@ vp = @lift(file["timeseries/p/" * indices[$iter]].v)
 sp = @lift($up.^2 + $vp.^2)
 
 fig = Figure()
-ax  = Axis(fig[1, 1])
-contourf!(ψ, colormap = :greys)
-scatter!(xp, yp, color = δp, colormap = :magma)
-xlims!(ax, (-2π, 2π))
-ylims!(ax, (-2π, 2π))
+ax1 = Axis(fig[1, 1], aspect = DataAspect())  
+ax2 = Axis(fig[1, 2], aspect = DataAspect())  
+
+# First subplot
+contourf!(ax1, ψ, colormap = :greys)
+scatter!(ax1, xp, yp, color = :red, markersize = 2)
+xlims!(ax1, (-2π, 2π))
+ylims!(ax1, (-2π, 2π))
+
+# Second subplot
+contourf!(ax2, ψ, colormap = :greys)
+scatter!(ax2, xp, yp, color = :red, markersize = 2)
+xlims!(ax2, (-REP*2π, REP*2π))
+ylims!(ax2, (-REP*2π, REP*2π))
 
 record(fig, "particle_video.mp4", 1:10:length(indices)) do i
     @info "recording $i of $(length(indices))"
